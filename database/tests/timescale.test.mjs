@@ -21,7 +21,7 @@ describe('TimescaleDB', exigeTimescale, () => {
     comTransacao(async (c) => {
       const jobs = await todas(c, `SELECT proc_name, config FROM timescaledb_information.jobs WHERE hypertable_name = 'leitura_sensor' ORDER BY proc_name`);
       assert.deepEqual(jobs.map((j) => j.proc_name), ['policy_compression', 'policy_retention']);
-      assert.equal(jobs.find((j) => j.proc_name === 'policy_retention').config.drop_after, '24 mons');
+      assert.match(jobs.find((j) => j.proc_name === 'policy_retention').config.drop_after, /^(24 mons|2 years)$/, 'retencao de 24 meses (o PostgreSQL normaliza para 2 years)');
     }));
 
   it('o esquema continua funcionando sobre a hypertable: PK composta, dedupe e FK', () =>
