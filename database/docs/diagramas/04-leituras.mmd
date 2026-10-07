@@ -1,0 +1,92 @@
+erDiagram
+  modelo_ia_versao {
+    uuid id PK
+    text nome_modelo
+    text versao_codigo
+    timestamptz valido_de
+    timestamptz valido_ate
+    boolean registro_atual
+    timestamptz criado_em
+  }
+  leitura_sensor {
+    uuid dispositivo_id PK,FK
+    timestamptz medido_em PK
+    numeric pm1_microg_m3
+    numeric pm25_microg_m3
+    numeric pm10_microg_m3
+    numeric no2_ppm
+    numeric tvoc_indice
+    numeric co2_ppm
+    numeric co_ppm
+    numeric o3_ppm
+    numeric temperatura_celsius
+    numeric umidade_percentual
+    numeric pressao_hpa
+    numeric indice_uv
+    text origem_dado
+    numeric score_qualidade
+    boolean validado
+    uuid lote_ingestao_id
+    timestamptz criado_em
+  }
+  evento_sonoro_detectado {
+    uuid id PK
+    uuid dispositivo_id FK
+    timestamptz detectado_em
+    text categoria_evento
+    numeric confianca_classificacao
+    uuid modelo_ia_versao_id FK
+    timestamptz criado_em
+  }
+  alerta {
+    uuid id PK
+    uuid dispositivo_id FK
+    uuid usuario_id FK
+    timestamptz medido_em_referencia
+    text tipo_alerta
+    text nivel_severidade
+    numeric valor_medido
+    numeric limiar_referencia
+    text status_principal
+    text status_anterior
+    timestamptz status_alterado_em
+    timestamptz criado_em
+  }
+  recomendacao {
+    uuid id PK
+    uuid alerta_id FK
+    text texto_recomendacao
+    text categoria_acao
+    text fonte_geracao
+    uuid modelo_ia_versao_id FK
+    boolean aceita_pelo_usuario
+    timestamptz criado_em
+  }
+  notificacao_enviada {
+    uuid id PK
+    uuid usuario_id FK
+    uuid alerta_id FK
+    text canal_envio
+    text status_principal
+    timestamptz enviado_em
+    timestamptz lido_em
+    timestamptz criado_em
+  }
+  preferencia_notificacao {
+    uuid usuario_id PK,FK
+    text tipo_alerta PK
+    text canal PK
+    boolean ativo
+    time horario_silencio_inicio
+    time horario_silencio_fim
+  }
+  dispositivo ||--o{ leitura_sensor : "dispositivo_id"
+  dispositivo ||--o{ evento_sonoro_detectado : "dispositivo_id"
+  modelo_ia_versao ||--o{ evento_sonoro_detectado : "modelo_ia_versao_id"
+  dispositivo ||--o{ alerta : "dispositivo_id"
+  usuario ||--o{ alerta : "usuario_id"
+  alerta ||--o{ recomendacao : "alerta_id"
+  modelo_ia_versao |o--o{ recomendacao : "modelo_ia_versao_id"
+  usuario ||--o{ notificacao_enviada : "usuario_id"
+  alerta ||--o{ notificacao_enviada : "alerta_id"
+  usuario ||--o{ preferencia_notificacao : "usuario_id"
