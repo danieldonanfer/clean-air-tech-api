@@ -1,0 +1,48 @@
+erDiagram
+  dim_tempo {
+    date tempo_key PK
+    smallint ano
+    smallint trimestre
+    smallint mes
+    text nome_mes
+    smallint semana_iso
+    smallint dia_do_mes
+    smallint dia_da_semana
+    text nome_dia
+    boolean fim_de_semana
+    boolean feriado
+    text nome_feriado
+  }
+  dim_local {
+    uuid local_key PK
+    uuid local_id UK
+    text tipo_local
+    smallint nivel_hierarquia
+    text tipo_organizacao
+    text fuso_horario
+    timestamptz carregado_em
+  }
+  dim_dispositivo {
+    uuid dispositivo_key PK
+    uuid dispositivo_id
+    text numero_serie
+    text modelo
+    text versao_firmware
+    timestamptz valido_de
+    timestamptz valido_ate
+    boolean registro_atual
+  }
+  fato_leitura {
+    uuid dispositivo_key PK,FK
+    date tempo_key PK,FK
+    smallint hora_do_dia PK
+    uuid local_key FK
+    numeric pm25_medio
+    numeric pm25_maximo
+    numeric co2_medio
+    integer quantidade_leituras
+    integer quantidade_alertas
+  }
+  dim_dispositivo ||--o{ fato_leitura : "dispositivo_key"
+  dim_tempo ||--o{ fato_leitura : "tempo_key"
+  dim_local ||--o{ fato_leitura : "local_key"

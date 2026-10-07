@@ -1,0 +1,106 @@
+erDiagram
+  usuario {
+    uuid id PK
+    text nome_completo
+    text email
+    text senha_hash
+    text telefone
+    boolean telefone_verificado
+    text papel_usuario
+    text status_conta
+    boolean email_verificado
+    timestamptz ultimo_login_em
+    timestamptz senha_alterada_em
+    boolean mfa_habilitado
+    integer tentativas_login_falhas
+    timestamptz bloqueado_ate
+    text idioma_preferido
+    text fuso_horario
+    boolean consentimento_lgpd_aceito
+    timestamptz consentimento_lgpd_data
+    text termos_uso_versao_aceita
+    timestamptz termos_uso_aceito_em
+    text classificacao_dado
+    date retencao_dado_ate
+    timestamptz criado_em
+    timestamptz atualizado_em
+    timestamptz removido_em
+  }
+  colaborador {
+    uuid id PK
+    text nome
+    text email_corporativo
+    text cargo
+    boolean ativo
+    timestamptz criado_em
+  }
+  token_verificacao {
+    uuid id PK
+    uuid usuario_id FK
+    text tipo
+    text token_hash
+    integer tentativas_uso
+    timestamptz criado_em
+    timestamptz expira_em
+    timestamptz usado_em
+  }
+  login_provedor_externo {
+    uuid id PK
+    uuid usuario_id FK
+    text provedor
+    text id_externo
+    timestamptz criado_em
+  }
+  mfa_configuracao {
+    uuid id PK
+    uuid usuario_id FK
+    text metodo
+    text segredo_criptografado
+    boolean ativo
+    timestamptz criado_em
+  }
+  sessao_autenticacao {
+    uuid id PK
+    uuid usuario_id FK
+    text token_hash UK
+    inet ip_origem
+    text user_agent
+    timestamptz criado_em
+    timestamptz expira_em
+    timestamptz revogado_em
+  }
+  papel {
+    uuid id PK
+    text nome UK
+    text descricao
+    text escopo
+    timestamptz criado_em
+  }
+  permissao {
+    uuid id PK
+    text chave UK
+    text descricao
+    timestamptz criado_em
+  }
+  papel_permissao {
+    uuid papel_id PK,FK
+    uuid permissao_id PK,FK
+  }
+  usuario_papel {
+    uuid usuario_id PK,FK
+    uuid papel_id PK,FK
+  }
+  colaborador_papel {
+    uuid colaborador_id PK,FK
+    uuid papel_id PK,FK
+  }
+  usuario ||--o{ token_verificacao : "usuario_id"
+  usuario ||--o{ login_provedor_externo : "usuario_id"
+  usuario ||--o{ mfa_configuracao : "usuario_id"
+  usuario ||--o{ sessao_autenticacao : "usuario_id"
+  papel ||--o{ papel_permissao : "papel_id"
+  permissao ||--o{ papel_permissao : "permissao_id"
+  usuario ||--o{ usuario_papel : "usuario_id"
+  papel ||--o{ usuario_papel : "papel_id"
+  colaborador ||--o{ colaborador_papel : "colaborador_id"
+  papel ||--o{ colaborador_papel : "papel_id"
