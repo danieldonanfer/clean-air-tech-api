@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+.pg-temp/
+.DS_Store
+database/docs/esquema-banco.html
+database/docs/diagramas/.puppeteer.json

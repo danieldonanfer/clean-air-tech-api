@@ -1,0 +1,26 @@
+{
+  "name": "clean-air-tech-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend e banco de dados (PostgreSQL + TimescaleDB) do TCC Clean Air Tech",
+  "type": "module",
+  "scripts": {
+    "db:migrate": "node-pg-migrate up -m database/migrations --migration-file-language sql --database-url-var DATABASE_URL",
+    "db:rollback": "node-pg-migrate down -m database/migrations --migration-file-language sql --database-url-var DATABASE_URL",
+    "db:validar": "node database/scripts/validar.mjs",
+    "db:schema": "node database/scripts/gerar-schema.mjs",
+    "db:diagramas": "node database/scripts/gerar-diagramas.mjs",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@mermaid-js/mermaid-cli": "^12.0.0",
+    "embedded-postgres": "^17.10.0-beta.17",
+    "husky": "^9.1.7"
+  }
+}
