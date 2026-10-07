@@ -1,0 +1,22 @@
+erDiagram
+  log_auditoria {
+    bigint id PK
+    text tabela_afetada
+    text registro_id
+    text operacao
+    uuid usuario_executor_id
+    jsonb dado_anterior
+    jsonb dado_novo
+    text origem_execucao
+    timestamptz executado_em
+  }
+  solicitacao_titular_dados {
+    uuid id PK
+    uuid usuario_id FK
+    text tipo_solicitacao
+    text status
+    timestamptz prazo_resposta
+    timestamptz resolvido_em
+    timestamptz criado_em
+  }
+  usuario ||--o{ solicitacao_titular_dados : "usuario_id"
