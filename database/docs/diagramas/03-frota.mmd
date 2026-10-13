@@ -1,0 +1,92 @@
+erDiagram
+  lote_fabricacao {
+    uuid id PK
+    text numero_lote UK
+    date data_fabricacao
+    integer quantidade_unidades
+    timestamptz criado_em
+  }
+  dispositivo {
+    uuid id PK
+    uuid local_id FK
+    uuid usuario_proprietario_id FK
+    uuid lote_fabricacao_id FK
+    text numero_serie UK
+    text modelo
+    timestamptz data_ativacao
+    text status_dispositivo
+    text status_conexao
+    integer intervalo_captacao_segundos
+    timestamptz ultimo_contato_em
+    numeric nivel_bateria_percentual
+    integer intensidade_sinal_dbm
+    integer contagem_erros_consecutivos
+    timestamptz ultima_sincronizacao_em
+    uuid firmware_versao_atual_id FK
+    timestamptz criado_em
+    timestamptz atualizado_em
+    timestamptz removido_em
+  }
+  dispositivo_estado {
+    uuid dispositivo_id PK,FK
+    jsonb estado_desejado
+    jsonb estado_reportado
+    timestamptz atualizado_em
+  }
+  grupo_dispositivo {
+    uuid id PK
+    text nome UK
+    jsonb criterio
+    timestamptz criado_em
+  }
+  dispositivo_grupo {
+    uuid dispositivo_id PK,FK
+    uuid grupo_id PK,FK
+  }
+  firmware_versao {
+    uuid id PK
+    uuid dispositivo_id FK
+    text versao_codigo
+    text origem_atualizacao
+    text resultado_instalacao
+    timestamptz valido_de
+    timestamptz valido_ate
+    boolean registro_atual
+  }
+  feature_flag {
+    uuid id PK
+    text chave UK
+    text tipo_alvo
+    numeric percentual_rollout
+    jsonb criterio_alvo
+    text status
+    timestamptz iniciado_em
+    timestamptz concluido_em
+    timestamptz criado_em
+  }
+  certificacao_dispositivo {
+    uuid id PK
+    text modelo
+    text tipo_certificacao
+    text laboratorio
+    date validade_ate
+    timestamptz criado_em
+  }
+  garantia_dispositivo {
+    uuid id PK
+    uuid dispositivo_id FK
+    date data_compra
+    date data_fim_garantia
+    text canal_venda
+    text numero_nota_fiscal
+    timestamptz criado_em
+  }
+  local ||--o{ dispositivo : "local_id"
+  usuario ||--o{ dispositivo : "usuario_proprietario_id"
+  lote_fabricacao |o--o{ dispositivo : "lote_fabricacao_id"
+  firmware_versao |o--o{ dispositivo : "firmware_versao_atual_id"
+  dispositivo ||--o| dispositivo_estado : "dispositivo_id"
+  dispositivo ||--o{ dispositivo_grupo : "dispositivo_id"
+  grupo_dispositivo ||--o{ dispositivo_grupo : "grupo_id"
+  dispositivo ||--o{ firmware_versao : "dispositivo_id"
+  dispositivo ||--o{ garantia_dispositivo : "dispositivo_id"

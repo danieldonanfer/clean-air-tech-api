@@ -38,10 +38,16 @@ npm run db:schema       # regenera database/docs/schema.sql (o CI falha se estiv
 npm run db:diagramas    # regenera os diagramas e o PDF quando o esquema mudou (precisa de Chrome/Edge)
 ```
 
-## O que ainda não existe
+## A API (`src/`)
 
-Este repositório hoje contém **apenas o banco** (`database/`). A API em Node.js + TypeScript ainda não foi iniciada; quando for, ela fica em `src/` e deve falar com o banco **somente** pelos papéis `clean_air_app`, `clean_air_auth` e `clean_air_ingestao`, informando o usuário da sessão com `SET LOCAL app.usuario_id = '<uuid>'` dentro de cada transação.
+Além do banco, o repositório tem a **API de autenticação** em Node.js + TypeScript (`src/`, testes em `tests/`; ver `README.md` e `docs/API_CONTRATO.md`). Regras que valem para quem mexer nela:
 
-Decisões ainda em aberto (alinhar com a equipe antes de escolher): ORM/query builder, biblioteca de hash de senha (argon2 recomendado), agendador dos jobs (`marcar_slas_violados`, `expurgar_processados`, cargas para `trusted`).
+- O contrato (`docs/API_CONTRATO.md` e `docs/openapi.yaml`) é compartilhado com o front. **Não mude sem avisar o Daniel**, e atualize os dois arquivos juntos.
+- A API fala com o banco **somente** pelos papéis `clean_air_auth` (cadastro, login, recuperação) e `clean_air_app` (usuário autenticado, sob RLS), trocando de papel com `SET LOCAL ROLE` dentro de cada transação (`src/db.ts`). O papel de login da API não tem privilégio próprio; nunca use o superusuário para atender requisições.
+- Nunca registre em log senha, token, código, hash, e-mail, IP ou corpo de requisição (os testes em `tests/borda.test.ts` verificam).
+- A mensagem de `erro.mensagem` é exibida como está pelo front: português, pronta para a tela.
+- Antes de concluir: `npm run typecheck`, `npm test` e, se mexeu no banco, `npm run db:validar`.
+
+Decisões ainda em aberto (alinhar com a equipe antes de escolher): agendador dos jobs (`marcar_slas_violados`, `expurgar_processados`, cargas para `trusted`) e, se houver mais de uma instância da API, um Redis para os limites de requisição (hoje em memória).
 
 Se este arquivo conflitar com uma instrução explícita do usuário na conversa, a do usuário prevalece, **exceto** a regra de nunca incluir o Claude como coautor, que é uma decisão permanente do projeto.

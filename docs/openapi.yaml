@@ -1,0 +1,368 @@
+openapi: 3.1.0
+info:
+  title: Clean Air Tech - API de autenticação
+  version: 1.0.0
+  description: >
+    Contrato entre o back-end e o front-end. O texto de referência é docs/API_CONTRATO.md;
+    este arquivo é a versão legível por máquina. Mensagens de erro em português, prontas para a tela.
+servers:
+  - url: http://localhost:3000
+    description: Desenvolvimento
+tags:
+  - name: Autenticação
+  - name: Recuperação de senha
+  - name: Perfil
+    description: Fase 2
+  - name: Saúde
+
+paths:
+  /saude:
+    get:
+      tags: [Saúde]
+      summary: Verificação de funcionamento
+      security: []
+      responses:
+        '200':
+          description: API no ar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean, const: true }
+
+  /v1/auth/cadastro:
+    post:
+      tags: [Autenticação]
+      summary: Cria a conta e já inicia a sessão
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Cadastro' }
+      responses:
+        '201':
+          description: Conta criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sessao' }
+        '409': { $ref: '#/components/responses/Conflito' }
+        '422': { $ref: '#/components/responses/Validacao' }
+        '429': { $ref: '#/components/responses/MuitasRequisicoes' }
+
+  /v1/auth/login:
+    post:
+      tags: [Autenticação]
+      summary: Entra com e-mail e senha
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, senha]
+              properties:
+                email: { type: string, format: email }
+                senha: { type: string }
+      responses:
+        '200':
+          description: Sessão iniciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sessao' }
+        '401':
+          description: E-mail ou senha incorretos (mesma resposta para e-mail inexistente)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '403':
+          description: Conta suspensa (CONTA_SUSPENSA)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '423':
+          description: Conta bloqueada por tentativas (CONTA_BLOQUEADA)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '429': { $ref: '#/components/responses/MuitasRequisicoes' }
+
+  /v1/auth/logout:
+    post:
+      tags: [Autenticação]
+      summary: Encerra a sessão atual
+      security: [{ bearer: [] }]
+      responses:
+        '204': { description: Sessão revogada }
+        '401': { $ref: '#/components/responses/SessaoInvalida' }
+
+  /v1/auth/eu:
+    get:
+      tags: [Autenticação]
+      summary: Usuário da sessão atual
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: Usuário autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [usuario]
+                properties:
+                  usuario: { $ref: '#/components/schemas/Usuario' }
+        '401': { $ref: '#/components/responses/SessaoInvalida' }
+
+  /v1/auth/recuperacao/solicitar:
+    post:
+      tags: [Recuperação de senha]
+      summary: Pede o código de 6 dígitos por e-mail
+      security: []
+      description: Responde igual exista a conta ou não. O código nunca aparece na resposta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '202':
+          description: Pedido aceito
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [expiraEmSegundos]
+                properties:
+                  expiraEmSegundos: { type: integer, const: 300 }
+        '429': { $ref: '#/components/responses/MuitasRequisicoes' }
+
+  /v1/auth/recuperacao/conferir:
+    post:
+      tags: [Recuperação de senha]
+      summary: Confere o código sem consumi-lo
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailCodigo' }
+      responses:
+        '204': { description: Código válido }
+        '400': { $ref: '#/components/responses/CodigoInvalido' }
+        '429': { $ref: '#/components/responses/MuitasRequisicoes' }
+
+  /v1/auth/recuperacao/redefinir:
+    post:
+      tags: [Recuperação de senha]
+      summary: Define a nova senha, consome o código e revoga todas as sessões
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: '#/components/schemas/EmailCodigo' }
+                - type: object
+                  required: [senha]
+                  properties:
+                    senha: { type: string, maxLength: 128 }
+      responses:
+        '204': { description: Senha redefinida }
+        '400': { $ref: '#/components/responses/CodigoInvalido' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  /v1/perfil:
+    get:
+      tags: [Perfil]
+      summary: Dados do perfil
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: Perfil
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [usuario]
+                properties:
+                  usuario: { $ref: '#/components/schemas/Usuario' }
+        '401': { $ref: '#/components/responses/SessaoInvalida' }
+    patch:
+      tags: [Perfil]
+      summary: Altera nome, apelido, e-mail e telefone
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome: { type: string }
+                apelido: { type: string, description: Derivado do nome; aceito e ignorado. }
+                email: { type: string, format: email }
+                telefone: { type: string }
+      responses:
+        '200':
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [usuario]
+                properties:
+                  usuario: { $ref: '#/components/schemas/Usuario' }
+        '401': { $ref: '#/components/responses/SessaoInvalida' }
+        '409': { $ref: '#/components/responses/Conflito' }
+        '422': { $ref: '#/components/responses/Validacao' }
+    delete:
+      tags: [Perfil]
+      summary: Exclui a conta (exclusão lógica)
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmacao, senha]
+              properties:
+                confirmacao: { type: string, const: EXCLUIR }
+                senha: { type: string }
+      responses:
+        '204': { description: Conta excluída }
+        '401': { $ref: '#/components/responses/SessaoInvalida' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+  /v1/perfil/senha:
+    post:
+      tags: [Perfil]
+      summary: Troca a senha de quem já entrou
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [senhaAtual, novaSenha]
+              properties:
+                senhaAtual: { type: string }
+                novaSenha: { type: string, maxLength: 128 }
+      responses:
+        '204': { description: Senha trocada }
+        '401': { $ref: '#/components/responses/SessaoInvalida' }
+        '422': { $ref: '#/components/responses/Validacao' }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Token opaco devolvido no cadastro e no login.
+
+  schemas:
+    Usuario:
+      type: object
+      required: [nome, apelido, email, telefone, funcao, idioma, membroDesde, objetivo]
+      properties:
+        nome: { type: string, example: Ana Silva }
+        apelido: { type: string, example: Ana }
+        email: { type: string, format: email, example: ana.silva@email.com }
+        telefone: { type: string, description: 'E.164, ou "" quando não há telefone', example: '+5511987654321' }
+        funcao: { type: string, example: Cliente }
+        idioma: { type: string, example: Português (Brasil) }
+        membroDesde: { type: string, example: março de 2023 }
+        objetivo: { type: string, description: Texto de exibição do objetivo, example: Monitoramento de ar e poluentes }
+
+    Sessao:
+      type: object
+      required: [token, usuario]
+      properties:
+        token: { type: string, description: 32 bytes aleatórios em base64url }
+        usuario: { $ref: '#/components/schemas/Usuario' }
+
+    Cadastro:
+      type: object
+      required: [nome, email, senha, objetivo, aceitouTermos]
+      properties:
+        nome: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        telefone: { type: string, description: Aceita máscara; sem país assume +55. }
+        senha: { type: string, maxLength: 128 }
+        objetivo: { type: string, enum: [ar, alergia, conforto, outro], description: 'Chave, não o texto.' }
+        aceitouTermos: { type: boolean, const: true }
+
+    EmailCodigo:
+      type: object
+      required: [email, codigo]
+      properties:
+        email: { type: string, format: email }
+        codigo: { type: string, pattern: '^[0-9]{6}$' }
+
+    Erro:
+      type: object
+      required: [erro]
+      properties:
+        erro:
+          type: object
+          required: [codigo, mensagem]
+          properties:
+            codigo:
+              type: string
+              enum:
+                - VALIDACAO
+                - EMAIL_JA_CADASTRADO
+                - TELEFONE_JA_CADASTRADO
+                - CREDENCIAIS_INVALIDAS
+                - CONTA_BLOQUEADA
+                - CONTA_SUSPENSA
+                - SESSAO_INVALIDA
+                - CODIGO_INVALIDO
+                - MUITAS_REQUISICOES
+                - NAO_ENCONTRADO
+                - ERRO_INTERNO
+            mensagem: { type: string, description: 'Em português, pronta para a tela.' }
+            campos:
+              type: object
+              description: Só existe em VALIDACAO.
+              additionalProperties: { type: string }
+
+  responses:
+    Validacao:
+      description: Campos inválidos (VALIDACAO). mensagem repete a do primeiro campo inválido.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    Conflito:
+      description: EMAIL_JA_CADASTRADO ou TELEFONE_JA_CADASTRADO
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    SessaoInvalida:
+      description: Token ausente, expirado ou revogado (SESSAO_INVALIDA)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    CodigoInvalido:
+      description: Código inválido, expirado, usado ou com tentativas esgotadas (CODIGO_INVALIDO)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    MuitasRequisicoes:
+      description: Limite de requisições excedido (MUITAS_REQUISICOES)
+      headers:
+        Retry-After:
+          description: Segundos até poder tentar de novo
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }

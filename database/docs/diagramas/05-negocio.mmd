@@ -1,0 +1,52 @@
+erDiagram
+  assinatura_plano {
+    uuid id PK
+    uuid usuario_id FK
+    text nivel_plano
+    text status_pagamento
+    integer limite_dispositivos
+    date data_inicio
+    date data_fim
+    timestamptz criado_em
+    timestamptz atualizado_em
+  }
+  saude_conta {
+    uuid id PK
+    uuid usuario_id FK
+    numeric pontuacao_saude
+    text risco_cancelamento
+    timestamptz calculado_em
+  }
+  ticket_suporte {
+    uuid id PK
+    uuid usuario_id FK
+    uuid dispositivo_id FK
+    uuid atendente_id FK
+    text assunto
+    text categoria_atendimento
+    text prioridade
+    text status_principal
+    text canal_contato
+    timestamptz sla_limite_em
+    boolean sla_violado
+    integer nivel_satisfacao
+    timestamptz criado_em
+    timestamptz atualizado_em
+    timestamptz resolvido_em
+  }
+  integracao_externa {
+    uuid id PK
+    uuid usuario_id FK
+    text servico_terceiro
+    text chave_api_externa
+    jsonb escopo_permissao
+    text status_principal
+    timestamptz ultima_sincronizacao_em
+    timestamptz criado_em
+  }
+  usuario ||--o{ assinatura_plano : "usuario_id"
+  usuario ||--o{ saude_conta : "usuario_id"
+  usuario ||--o{ ticket_suporte : "usuario_id"
+  dispositivo |o--o{ ticket_suporte : "dispositivo_id"
+  colaborador |o--o{ ticket_suporte : "atendente_id"
+  usuario ||--o{ integracao_externa : "usuario_id"

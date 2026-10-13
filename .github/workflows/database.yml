@@ -1,0 +1,78 @@
+name: Banco de dados
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: banco-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PUPPETEER_SKIP_DOWNLOAD: 'true'
+
+jobs:
+  postgres-puro:
+    name: PostgreSQL puro (migrations, testes e schema.sql)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Sem DATABASE_URL: sobe um PostgreSQL 17 embutido, aplica up -> down -> up e roda todos os testes.
+      - run: npm run db:validar
+      - name: schema.sql esta atualizado?
+        run: |
+          npm run db:schema
+          git diff --exit-code database/docs/schema.sql || {
+            echo "::error::database/docs/schema.sql esta desatualizado. Rode 'npm run db:schema' e faca o commit."
+            exit 1
+          }
+
+  timescaledb:
+    name: TimescaleDB (hypertable, compressão e retenção)
+    runs-on: ubuntu-latest
+    services:
+      timescale:
+        image: timescale/timescaledb:latest-pg17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      TIMESCALE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Com DATABASE_URL usa este banco: aplica up -> down -> up e roda os testes, incluindo timescale.test.mjs.
+      - run: npm run db:validar
+
+  commits:
+    name: Mensagens de commit (Conventional Commits)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose

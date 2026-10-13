@@ -7,20 +7,41 @@
   "scripts": {
     "db:migrate": "node-pg-migrate up -m database/migrations --migration-file-language sql --database-url-var DATABASE_URL",
     "db:rollback": "node-pg-migrate down -m database/migrations --migration-file-language sql --database-url-var DATABASE_URL",
+    "db:nuvem": "node database/scripts/preparar-nuvem.mjs",
     "db:validar": "node database/scripts/validar.mjs",
     "db:schema": "node database/scripts/gerar-schema.mjs",
     "db:diagramas": "node database/scripts/gerar-diagramas.mjs",
-    "prepare": "husky"
+    "prepare": "husky || true",
+    "dev": "node --env-file-if-exists=.env --import tsx --watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/testar-api.mjs"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.1",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.2.1",
+    "@node-rs/argon2": "^2.2.2",
+    "@types/node": "^26.6.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
+    "fastify": "^5.12.7",
     "node-pg-migrate": "^9.0.0",
-    "pg": "^8.23.1"
+    "nodemailer": "^10.1.0",
+    "pg": "^8.23.1",
+    "typescript": "^7.0.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@mermaid-js/mermaid-cli": "^12.0.0",
     "embedded-postgres": "^17.10.0-beta.17",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "tsx": "^4.23.15"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

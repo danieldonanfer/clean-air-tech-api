@@ -1,0 +1,37 @@
+# Blueprint do Render (plano gratuito). Os valores marcados com `sync: false` são pedidos no painel
+# na primeira vez e nunca ficam no repositório. Passo a passo em docs/API_DEPLOY.md.
+services:
+  - type: web
+    name: clean-air-tech-api
+    runtime: node
+    plan: free
+    region: virginia
+    # Deploy a cada push na develop, a mesma branch que publica o front no GitHub Pages.
+    branch: develop
+    # O Render roda com NODE_ENV=production, então o npm ci pula as devDependencies (husky, testes,
+    # diagramas). O compilador e os tipos ficam em dependencies justamente para este build.
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /saude
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: 'true'
+      - key: DATABASE_SSL
+        value: 'true'
+      # O plano gratuito do Render bloqueia SMTP (portas 25, 465 e 587): o e-mail sai pela API HTTPS do Brevo.
+      - key: EMAIL_MODE
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: SEGREDO_CODIGOS
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

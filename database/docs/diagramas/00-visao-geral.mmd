@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph raw_g["Camada RAW"]
+    raw["<b>Camada raw (ingestão)</b><br/><i>lote_ingestao · leitura_bruta</i>"]
+  end
+  subgraph refined_g["Camada REFINED"]
+    identidade["<b>Identidade, autenticação e controle de acesso</b><br/><i>usuario · colaborador · token_verificacao · login_provedor_externo · mfa_configuracao · sessao_autenticacao · papel · permissao · papel_permissao · usuario_papel · colaborador_papel</i>"]
+    organizacoes["<b>Organizações e ambientes</b><br/><i>organizacao · usuario_organizacao · local · local_membro</i>"]
+    frota["<b>Gestão de frota de dispositivos</b><br/><i>lote_fabricacao · dispositivo · dispositivo_estado · grupo_dispositivo · dispositivo_grupo · firmware_versao · feature_flag · certificacao_dispositivo · garantia_dispositivo</i>"]
+    leituras["<b>Leituras, inteligência artificial e alertas</b><br/><i>modelo_ia_versao · leitura_sensor · evento_sonoro_detectado · alerta · recomendacao · notificacao_enviada · preferencia_notificacao</i>"]
+    negocio["<b>Negócio, suporte e integrações</b><br/><i>assinatura_plano · saude_conta · ticket_suporte · integracao_externa</i>"]
+    governanca["<b>Governança, auditoria e LGPD</b><br/><i>log_auditoria · solicitacao_titular_dados</i>"]
+  end
+  subgraph trusted_g["Camada TRUSTED"]
+    trusted["<b>Camada trusted (análise)</b><br/><i>dim_tempo · dim_local · dim_dispositivo · fato_leitura</i>"]
+  end
+  leituras -->|"3 FK"| frota
+  leituras -->|"3 FK"| identidade
+  negocio -->|"5 FK"| identidade
+  frota -->|"1 FK"| organizacoes
+  frota -->|"1 FK"| identidade
+  organizacoes -->|"3 FK"| identidade
+  governanca -->|"1 FK"| identidade
+  negocio -->|"1 FK"| frota
+  raw ==>|"carga + deduplicação"| leituras
+  leituras ==>|"ETL horário (SCD2)"| trusted
+  classDef camadaRaw fill:#f1f5f9,stroke:#64748b,color:#0f172a
+  classDef camadaRefined fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+  classDef camadaTrusted fill:#dcfce7,stroke:#15803d,color:#14532d
+  class raw camadaRaw
+  class identidade,organizacoes,frota,leituras,negocio,governanca camadaRefined
+  class trusted camadaTrusted

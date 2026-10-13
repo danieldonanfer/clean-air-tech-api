@@ -7,3 +7,5 @@ node_modules/
 .DS_Store
 database/docs/esquema-banco.html
 database/docs/diagramas/.puppeteer.json
+
+dist/

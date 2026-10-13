@@ -1,0 +1,21 @@
+erDiagram
+  lote_ingestao {
+    uuid id PK
+    text origem
+    boolean sincronizacao_offline
+    timestamptz recebido_em
+    integer quantidade_registros
+    text status
+    timestamptz processado_em
+  }
+  leitura_bruta {
+    bigint id PK
+    uuid lote_ingestao_id FK
+    text numero_serie
+    timestamptz medido_em
+    jsonb payload
+    timestamptz recebido_em
+    timestamptz processado_em
+    text erro
+  }
+  lote_ingestao ||--o{ leitura_bruta : "lote_ingestao_id"

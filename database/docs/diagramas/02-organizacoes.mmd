@@ -1,0 +1,44 @@
+erDiagram
+  organizacao {
+    uuid id PK
+    text nome_fantasia
+    text razao_social
+    text tipo
+    timestamptz criado_em
+    timestamptz removido_em
+  }
+  usuario_organizacao {
+    uuid usuario_id PK,FK
+    uuid organizacao_id PK,FK
+    text papel_na_organizacao
+    timestamptz criado_em
+  }
+  local {
+    uuid id PK
+    uuid usuario_id FK
+    uuid organizacao_id FK
+    uuid local_pai_id FK
+    text nome
+    text tipo_local
+    numeric latitude
+    numeric longitude
+    text fuso_horario
+    boolean ativo
+    timestamptz criado_em
+    timestamptz atualizado_em
+    timestamptz removido_em
+  }
+  local_membro {
+    uuid id PK
+    uuid local_id FK
+    uuid usuario_id FK
+    text nivel_acesso
+    timestamptz criado_em
+  }
+  usuario ||--o{ usuario_organizacao : "usuario_id"
+  organizacao ||--o{ usuario_organizacao : "organizacao_id"
+  usuario ||--o{ local : "usuario_id"
+  organizacao |o--o{ local : "organizacao_id"
+  local |o--o{ local : "local_pai_id"
+  local ||--o{ local_membro : "local_id"
+  usuario ||--o{ local_membro : "usuario_id"
