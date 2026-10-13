@@ -1,6 +1,6 @@
 # Colocando a API na nuvem
 
-Três peças: **Supabase** (banco), **Render** (API) e um **SMTP** (e-mail). Tudo no plano gratuito.
+Três peças: **Supabase** (banco), **Render** (API) e o **Brevo** (e-mail). Tudo no plano gratuito.
 
 > **Nunca** cole senhas ou chaves no chat, em issue, em PR ou no repositório. Elas vão só nas variáveis de ambiente do Render e do seu `.env` local (que o Git ignora).
 
@@ -38,16 +38,16 @@ Este roteiro foi escrito sem acesso ao Supabase nem ao Render, então os pontos 
 
 Se o passo 4/4 falhar, a troca de papel não está valendo naquele ambiente (por exemplo, por causa do pooler): pare e avise, porque sem ela a API não funciona.
 
-## 2. E-mail (SMTP)
+## 2. E-mail
 
-A API envia o código por SMTP comum (`nodemailer`), sem trocar código.
+> **O plano gratuito do Render bloqueia SMTP** (portas 25, 465 e 587): com `EMAIL_MODE=smtp` o envio dá `Connection timeout`. Por isso o caminho padrão é a **API HTTPS do Brevo** (porta 443, que não é bloqueada). O SMTP continua disponível para quem hospedar em outro lugar.
 
-**Opção A, Gmail com senha de app** (a mais rápida):
-1. Na conta Google, ative a verificação em duas etapas e gere uma **senha de app** (<https://myaccount.google.com/apppasswords>).
-2. `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER=<seu-gmail>`, `SMTP_PASS=<senha-de-app>`, `EMAIL_FROM=Clean Air Tech <seu-gmail>`.
-3. O Gmail limita o envio diário e pode marcar como spam; serve para a demonstração.
+**Brevo (plano gratuito, 300 e-mails por dia):**
+1. Crie a conta em <https://www.brevo.com> e, em **Senders**, adicione e **verifique** o e-mail remetente (ele manda um link de confirmação). O Brevo só envia de um remetente verificado, mas entrega para qualquer destinatário.
+2. Em **SMTP & API → API Keys**, gere uma chave de API (começa com `xkeysib-`).
+3. No Render: `EMAIL_MODE=brevo`, `BREVO_API_KEY=<a chave>` e `EMAIL_FROM=Clean Air Tech <o-email-verificado>`. O `EMAIL_FROM` **precisa ser o remetente verificado**, senão o Brevo recusa (o log mostra `Brevo respondeu 400: Sender not valid`).
 
-**Opção B, Resend** (mais confiável, exige um domínio verificado): `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER=resend`, `SMTP_PASS=<chave-da-api>`. **Conferir** a documentação do Resend.
+**SMTP genérico** (`EMAIL_MODE=smtp`, só fora do plano gratuito do Render), por exemplo Gmail com senha de app: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`.
 
 ## 3. API no Render
 
@@ -58,7 +58,7 @@ A API envia o código por SMTP comum (`nodemailer`), sem trocar código.
    |---|---|
    | `DATABASE_URL` | a do passo 1.5 (papel `clean_air_api`) |
    | `CORS_ORIGINS` | só se o front estiver em outra origem além de `danieldonanfer.github.io` e `localhost` |
-   | `EMAIL_FROM`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` | do passo 2 |
+   | `EMAIL_FROM`, `BREVO_API_KEY` | do passo 2 |
 
    `SEGREDO_CODIGOS` o próprio Render gera. **Não troque depois de ter usuários com código pendente**: os códigos em andamento deixam de valer (sem prejuízo, só pedir outro).
 3. Quando subir, teste: `curl https://<seu-servico>.onrender.com/saude` → `{"ok":true}`.
