@@ -1,0 +1,43 @@
+# Blueprint do Render (plano gratuito). Os valores marcados com `sync: false` são pedidos no painel
+# na primeira vez e nunca ficam no repositório. Passo a passo em docs/API_DEPLOY.md.
+services:
+  - type: web
+    name: clean-air-tech-api
+    runtime: node
+    plan: free
+    region: virginia
+    # Deploy a cada push na develop, a mesma branch que publica o front no GitHub Pages.
+    branch: develop
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /saude
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      # O devDependency de diagramas baixa um Chrome inteiro; a API não precisa dele.
+      - key: PUPPETEER_SKIP_DOWNLOAD
+        value: 'true'
+      - key: TRUST_PROXY
+        value: 'true'
+      - key: DATABASE_SSL
+        value: 'true'
+      - key: EMAIL_MODE
+        value: smtp
+      - key: SEGREDO_CODIGOS
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
