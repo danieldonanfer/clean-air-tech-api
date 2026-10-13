@@ -50,12 +50,51 @@ function escaparHtml(valor: string): string {
   return valor.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-export function criarMailer(config: Config, log: Registro): Mailer {
+const URL_BREVO = 'https://api.brevo.com/v3/smtp/email';
+
+/** Separa `Nome <email@dominio>` (ou só `email@dominio`) no formato que a API do Brevo pede. */
+export function separarRemetente(de: string): { name?: string; email: string } {
+  const m = /^\s*(?:"?([^"<]*?)"?\s*)?<([^>\s]+)>\s*$/.exec(de);
+  if (m) {
+    const nome = m[1]?.trim();
+    return nome ? { name: nome, email: m[2]! } : { email: m[2]! };
+  }
+  return { email: de.trim() };
+}
+
+export function criarMailer(config: Config, log: Registro, buscar: typeof fetch = fetch): Mailer {
   if (config.EMAIL_MODE === 'console') {
     // Só para desenvolvimento (a configuração recusa este modo em produção).
     return {
       async enviarCodigoRecuperacao(para, codigo) {
         log.info({ para: para.email, codigo }, 'E-mail simulado (EMAIL_MODE=console)');
+      },
+    };
+  }
+
+  if (config.EMAIL_MODE === 'brevo') {
+    const chave = config.BREVO_API_KEY ?? '';
+    const remetente = separarRemetente(config.EMAIL_FROM);
+    return {
+      async enviarCodigoRecuperacao(para, codigo) {
+        const { assunto, texto, html } = montarMensagem(para, codigo);
+        const resposta = await buscar(URL_BREVO, {
+          method: 'POST',
+          headers: { 'api-key': chave, 'content-type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({
+            sender: remetente,
+            to: [{ email: para.email, name: para.nome }],
+            subject: assunto,
+            textContent: texto,
+            htmlContent: html,
+          }),
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!resposta.ok) {
+          // O Brevo explica o motivo (ex.: remetente não verificado). Nunca inclui a chave.
+          const motivo = await resposta.json().then((j) => String((j as { message?: unknown }).message ?? ''), () => '');
+          throw new Error(`Brevo respondeu ${resposta.status}${motivo ? `: ${motivo.slice(0, 200)}` : ''}`);
+        }
       },
     };
   }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { carregarConfig } from '../src/config.ts';
-import { montarMensagem } from '../src/email.ts';
+import { criarMailer, montarMensagem, separarRemetente } from '../src/email.ts';
 import { Limitador } from '../src/limitador.ts';
 import { criarSeguranca } from '../src/seguranca.ts';
 import { normalizarTelefone, problemaDaSenha } from '../src/validacao.ts';
@@ -33,6 +33,72 @@ describe('configuração', () => {
     assert.throws(() => carregarConfig({ ...AMBIENTE_MINIMO, NODE_ENV: 'production', EMAIL_MODE: 'smtp' }), /SMTP_HOST/);
     assert.doesNotThrow(() =>
       carregarConfig({ ...AMBIENTE_MINIMO, NODE_ENV: 'production', EMAIL_MODE: 'smtp', SMTP_HOST: 'smtp.exemplo.com' }),
+    );
+  });
+});
+
+describe('e-mail pelo Brevo (API HTTPS)', () => {
+  const REGISTRO = { info() {}, error() {} };
+  const CONFIG = carregarConfig({
+    ...AMBIENTE_MINIMO,
+    NODE_ENV: 'production',
+    EMAIL_MODE: 'brevo',
+    BREVO_API_KEY: 'xkeysib-chave-de-teste',
+    EMAIL_FROM: 'Clean Air Tech <remetente@exemplo.com>',
+  });
+
+  it('exige a chave e aceita o modo brevo em produção', () => {
+    assert.throws(
+      () => carregarConfig({ ...AMBIENTE_MINIMO, NODE_ENV: 'production', EMAIL_MODE: 'brevo' }),
+      (e: Error) => /BREVO_API_KEY/.test(e.message),
+    );
+    assert.equal(CONFIG.EMAIL_MODE, 'brevo');
+  });
+
+  it('separa o remetente "Nome <email>" e o e-mail puro', () => {
+    assert.deepEqual(separarRemetente('Clean Air Tech <a@b.com>'), { name: 'Clean Air Tech', email: 'a@b.com' });
+    assert.deepEqual(separarRemetente('"Clean Air" <a@b.com>'), { name: 'Clean Air', email: 'a@b.com' });
+    assert.deepEqual(separarRemetente('<a@b.com>'), { email: 'a@b.com' });
+    assert.deepEqual(separarRemetente(' a@b.com '), { email: 'a@b.com' });
+  });
+
+  it('envia pela API: URL, chave no cabeçalho, remetente, destinatário e código', async () => {
+    let chamada: { url: string; init: RequestInit } | undefined;
+    const buscar = (async (url: string, init: RequestInit) => {
+      chamada = { url, init };
+      return new Response(JSON.stringify({ messageId: 'x' }), { status: 201 });
+    }) as unknown as typeof fetch;
+
+    await criarMailer(CONFIG, REGISTRO, buscar).enviarCodigoRecuperacao({ email: 'ana@exemplo.com', nome: 'Ana Silva' }, '123456');
+
+    assert.equal(chamada?.url, 'https://api.brevo.com/v3/smtp/email');
+    assert.equal(chamada?.init.method, 'POST');
+    const cabecalhos = chamada?.init.headers as Record<string, string>;
+    assert.equal(cabecalhos['api-key'], 'xkeysib-chave-de-teste');
+    const corpo = JSON.parse(String(chamada?.init.body));
+    assert.deepEqual(corpo.sender, { name: 'Clean Air Tech', email: 'remetente@exemplo.com' });
+    assert.deepEqual(corpo.to, [{ email: 'ana@exemplo.com', name: 'Ana Silva' }]);
+    assert.match(corpo.subject, /123456/);
+    assert.match(corpo.htmlContent, /123456/);
+    assert.match(corpo.textContent, /123456/);
+  });
+
+  it('falha com o motivo do Brevo, sem vazar a chave', async () => {
+    const buscar = (async () =>
+      new Response(JSON.stringify({ code: 'invalid_parameter', message: 'Sender not valid' }), { status: 400 })) as unknown as typeof fetch;
+    const mailer = criarMailer(CONFIG, REGISTRO, buscar);
+    await assert.rejects(
+      () => mailer.enviarCodigoRecuperacao({ email: 'ana@exemplo.com', nome: 'Ana' }, '123456'),
+      (e: Error) => /400/.test(e.message) && /Sender not valid/.test(e.message) && !e.message.includes('xkeysib'),
+    );
+  });
+
+  it('erro de rede também sobe, para a API registrar no log', async () => {
+    const buscar = (async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    await assert.rejects(() =>
+      criarMailer(CONFIG, REGISTRO, buscar).enviarCodigoRecuperacao({ email: 'ana@exemplo.com', nome: 'Ana' }, '123456'),
     );
   });
 });

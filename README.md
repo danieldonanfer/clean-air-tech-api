@@ -37,7 +37,7 @@ src/
   validacao.ts   regras de entrada e mensagens em português, as mesmas do front
   auth.ts        cadastro, login, sessão, logout e recuperação de senha
   app.ts         Fastify: CORS, helmet, limite global, tratamento de erros, rotas
-  email.ts       envio por SMTP (ou console, só em desenvolvimento)
+  email.ts       envio pela API do Brevo ou por SMTP (ou console, só em desenvolvimento)
 tests/           integração (PostgreSQL real) e unidade
 ```
 

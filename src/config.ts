@@ -27,7 +27,9 @@ const esquema = z
     // Atrás de proxy (Render) o IP real vem em X-Forwarded-For.
     TRUST_PROXY: booleano,
 
-    EMAIL_MODE: z.enum(['smtp', 'console']).default('console'),
+    // brevo: API HTTPS (porta 443). O plano gratuito do Render bloqueia SMTP (25, 465 e 587).
+    EMAIL_MODE: z.enum(['smtp', 'brevo', 'console']).default('console'),
+    BREVO_API_KEY: z.string().optional(),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().int().positive().default(587),
     SMTP_SECURE: booleano,
@@ -53,6 +55,9 @@ const esquema = z
         path: ['EMAIL_MODE'],
         message: 'EMAIL_MODE=console é só para desenvolvimento; em produção use smtp',
       });
+    }
+    if (env.EMAIL_MODE === 'brevo' && !env.BREVO_API_KEY) {
+      ctx.addIssue({ code: 'custom', path: ['BREVO_API_KEY'], message: 'BREVO_API_KEY é obrigatória com EMAIL_MODE=brevo' });
     }
     if (env.EMAIL_MODE === 'smtp' && !env.SMTP_HOST) {
       ctx.addIssue({ code: 'custom', path: ['SMTP_HOST'], message: 'SMTP_HOST é obrigatória com EMAIL_MODE=smtp' });

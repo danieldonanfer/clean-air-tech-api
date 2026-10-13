@@ -22,8 +22,11 @@ services:
         value: 'true'
       - key: DATABASE_SSL
         value: 'true'
+      # O plano gratuito do Render bloqueia SMTP (portas 25, 465 e 587): o e-mail sai pela API HTTPS do Brevo.
       - key: EMAIL_MODE
-        value: smtp
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
       - key: SEGREDO_CODIGOS
         generateValue: true
       - key: DATABASE_URL
@@ -31,12 +34,4 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: EMAIL_FROM
-        sync: false
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        value: 587
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
         sync: false
