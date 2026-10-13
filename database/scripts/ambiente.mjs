@@ -31,7 +31,13 @@ export async function subirBanco({ porta = 54329 } = {}) {
     embutido: true,
     parar: async () => {
       await servidor.stop();
-      rmSync(dir, { recursive: true, force: true });
+      // No Windows o processo do Postgres solta a pasta com atraso (EBUSY): tenta de novo e,
+      // se não conseguir, deixa a pasta temporária para o sistema limpar em vez de falhar o comando.
+      try {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+      } catch {
+        /* a pasta fica em tmpdir() e some na limpeza do sistema */
+      }
     },
   };
 }
