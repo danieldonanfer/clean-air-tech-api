@@ -7,6 +7,7 @@
   "scripts": {
     "db:migrate": "node-pg-migrate up -m database/migrations --migration-file-language sql --database-url-var DATABASE_URL",
     "db:rollback": "node-pg-migrate down -m database/migrations --migration-file-language sql --database-url-var DATABASE_URL",
+    "db:nuvem": "node database/scripts/preparar-nuvem.mjs",
     "db:validar": "node database/scripts/validar.mjs",
     "db:schema": "node database/scripts/gerar-schema.mjs",
     "db:diagramas": "node database/scripts/gerar-diagramas.mjs",
