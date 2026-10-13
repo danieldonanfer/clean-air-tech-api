@@ -12,30 +12,31 @@ Este roteiro foi escrito sem acesso ao Supabase nem ao Render, então os pontos 
 2. Em **Project Settings → Database**, copie as strings de conexão. Duas coisas importam:
    - A conexão **direta** (`db.<ref>.supabase.co:5432`) costuma ser só IPv6. Se a sua rede ou o Render não tiver IPv6, use a URL do **pooler** (`aws-0-<região>.pooler.supabase.com`), cujo usuário é `postgres.<ref>`. **Conferir** no painel qual está disponível.
    - As migrations usam bloqueio de sessão: aplique pela conexão direta ou pelo pooler em **modo sessão** (porta 5432), não pelo modo transação (6543).
-3. Aplique as migrations **da sua máquina**, com a URL do usuário `postgres`:
+3. Rode **um comando só**, da sua máquina. Ele aplica as migrations, cria o papel de login da API (`clean_air_api`, sem privilégio próprio, só pode virar `clean_air_auth` ou `clean_air_app` dentro de uma transação) e **confere** que a troca de papel funciona. As três variáveis ficam só no seu terminal, nunca em arquivo do repositório, e o script não imprime nenhuma delas:
 
    ```bash
-   DATABASE_URL='postgres://postgres.<ref>:<SENHA>@<host>:5432/postgres' npm run db:migrate
+   # Git Bash / Linux / macOS
+   ADMIN_DATABASE_URL='postgres://postgres.<ref>:<SENHA-DO-POSTGRES>@<host>:5432/postgres'    API_DATABASE_URL='postgres://clean_air_api.<ref>:<SENHA-DA-API>@<host>:5432/postgres'    API_DB_SENHA='<SENHA-DA-API>'    npm run db:nuvem
    ```
 
+   ```powershell
+   # PowerShell
+   $env:ADMIN_DATABASE_URL='postgres://postgres.<ref>:<SENHA-DO-POSTGRES>@<host>:5432/postgres'
+   $env:API_DATABASE_URL='postgres://clean_air_api.<ref>:<SENHA-DA-API>@<host>:5432/postgres'
+   $env:API_DB_SENHA='<SENHA-DA-API>'
+   npm run db:nuvem
+   ```
+
+   - `<SENHA-DA-API>` é uma senha **nova, forte (16+ caracteres) e diferente da do `postgres`**. Use a mesma nas duas variáveis.
+   - No pooler do Supabase o usuário leva o ID do projeto (`clean_air_api.<ref>`); na conexão direta é só `clean_air_api`.
    - O Supabase **não tem TimescaleDB**. A migration `0009` já vira no-op sem a extensão (`refined.leitura_sensor` fica como tabela comum).
-   - A migration `0001` cria os papéis `clean_air_*`. **Conferir** se o usuário `postgres` do Supabase consegue (ele tem `CREATEROLE`, mas não é superusuário). Se falhar, **não edite a migration**: avise para tratarmos com uma nova migration ou um passo manual documentado aqui.
-4. Crie o papel de login da API (**fora do repositório**, no SQL Editor do Supabase). Ele não tem privilégio próprio, só pode virar `clean_air_auth` ou `clean_air_app` dentro de uma transação:
+   - O script é repetível: migrations já aplicadas são puladas e, se o papel existir, só a senha é atualizada.
+   - **A migration `0001` cria os papéis `clean_air_*`.** O usuário `postgres` do Supabase tem `CREATEROLE`, mas não é superusuário. **Conferir**: se o comando falhar logo no passo 1, **não edite a migration**; avise para tratarmos com uma nova migration ou um passo manual documentado aqui.
+   - Saída esperada: `1/4 migrations`, `2/4 papel clean_air_api`, `3/4 sem SET ROLE o papel de login não lê nada: OK`, `4/4 SET LOCAL ROLE clean_air_auth e clean_air_app: OK`, `Banco pronto para a API.`
 
-   ```sql
-   CREATE ROLE clean_air_api LOGIN PASSWORD '<SENHA-FORTE-DIFERENTE-DA-DO-POSTGRES>' NOINHERIT
-     IN ROLE clean_air_auth, clean_air_app;
-   ```
+4. A `DATABASE_URL` da API no Render é a `API_DATABASE_URL` acima. A API usa `SET LOCAL ROLE` dentro de transações, então funciona tanto no pooler em modo sessão quanto em modo transação.
 
-5. Monte a `DATABASE_URL` da API com esse papel (no pooler o usuário é `clean_air_api.<ref>`):
-
-   ```
-   postgres://clean_air_api.<ref>:<SENHA>@<host-do-pooler>:5432/postgres
-   ```
-
-   A API usa `SET LOCAL ROLE` dentro de transações, então funciona tanto em modo sessão quanto em modo transação do pooler.
-
-**Teste cedo** (antes de configurar o resto): conecte com a URL da API e rode `SELECT count(*) FROM refined.usuario;`. Deve dar **permissão negada**. Depois `BEGIN; SET LOCAL ROLE clean_air_auth; SELECT count(*) FROM refined.usuario; ROLLBACK;` deve funcionar. Se isso falhar, a troca de papel não está valendo no Supabase.
+Se o passo 4/4 falhar, a troca de papel não está valendo naquele ambiente (por exemplo, por causa do pooler): pare e avise, porque sem ela a API não funciona.
 
 ## 2. E-mail (SMTP)
 
