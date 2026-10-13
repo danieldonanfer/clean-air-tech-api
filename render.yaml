@@ -8,6 +8,8 @@ services:
     region: virginia
     # Deploy a cada push na develop, a mesma branch que publica o front no GitHub Pages.
     branch: develop
+    # O Render roda com NODE_ENV=production, então o npm ci pula as devDependencies (husky, testes,
+    # diagramas). O compilador e os tipos ficam em dependencies justamente para este build.
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /saude
@@ -16,9 +18,6 @@ services:
         value: 22
       - key: NODE_ENV
         value: production
-      # O devDependency de diagramas baixa um Chrome inteiro; a API não precisa dele.
-      - key: PUPPETEER_SKIP_DOWNLOAD
-        value: 'true'
       - key: TRUST_PROXY
         value: 'true'
       - key: DATABASE_SSL
